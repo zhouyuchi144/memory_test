@@ -4,9 +4,9 @@ import json
 import re
 from datetime import datetime, timedelta
 
-# filename = "集合1-随机生成-评估1000.csv"
-# filename = "集合3-专注时间集合-评估500.csv"
-# filename = "集合2-重点例行case_llm_plus.csv"
+filename = "集合1-随机生成-评估1000"
+# filename = "集合3-专注时间集合-评估500"
+# filename = "集合2-重点例行case_llm_plus"
 # filename = "集合2-重点例行case"
 filename = "集合4-多轮数据"
 online_version = ""
