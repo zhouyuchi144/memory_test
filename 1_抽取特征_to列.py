@@ -4,11 +4,11 @@ import json
 import re
 from datetime import datetime, timedelta
 
-filename = "集合1-随机生成-评估1000"
+# filename = "集合1-随机生成-评估1000"
 # filename = "集合3-专注时间集合-评估500"
 # filename = "集合2-重点例行case_llm_plus"
 # filename = "集合2-重点例行case"
-filename = "集合4-多轮数据"
+filename = "集合4-多轮数据A"
 online_version = ""
 # online_version = "/一期线上版本_deepseek_v3"
 input_file = f".{online_version}/1_生成结果/{filename}.csv"
@@ -41,9 +41,9 @@ def main():
     df = df.iloc[:, [0,1,-1]]
     df['result'] = df['生成结果'].apply(lambda x: str2json_llm_output(json.loads(x)['result']))
     if not online_version:
-        keys = ['memory_type', 'memory_subtype', 'content', 'place', 'related_person', 'start_time_has_hour', 'start_time_not_right',
+        keys = ['memory_type', 'memory_subtype', 'content', 'place', 'related_person',
             'start_time', 'end_time', 'remind_time', 'is_repeat_time', 'repeat_freq', 'repeat_value', 'repeat_last_time'
-            ,'start_date_chinese', 'start_time_chinese', 'end_date_chinese', 'end_time_chinese', 'remind_date_chinese', 'remind_time_chinese'
+            , 'start_time_chinese', 'end_time_chinese', 'remind_time_chinese'
            ]
     # keys = ['memory_type', 'start_time_has_hour', 'start_time_not_right',
     #         'start_time', 'end_time', 'remind_time', 'is_repeat_time', 'repeat_freq', 'repeat_value', 'repeat_last_time']
@@ -61,10 +61,11 @@ def main():
         d = row['result']
         for key in keys:
             if key in ('start_time', 'end_time', 'remind_time'):
-                if d.get('start_time_has_hour') == '是' or d.get('start_time_is_accurate') == '是' :
-                    v.append(get_time_value(d.get(key)))
-                else:
-                    v.append('')
+                v.append(get_time_value(d.get(key)))
+                # if d.get('start_time_has_hour') == '是' or d.get('start_time_is_accurate') == '是' :
+                #     v.append(get_time_value(d.get(key)))
+                # else:
+                #     v.append('')
             elif key == 'start_time_has_hour':
                 value = d.get('start_time_is_accurate') if d.get('start_time_is_accurate') else d.get(key, '')
                 v.append(str(value))

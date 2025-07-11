@@ -6,22 +6,25 @@ from datetime import datetime, timedelta
 
 
 
-keys = ['memory_type', 'memory_subtype', 'content', 'place', 'related_person', 'start_time_has_hour', 'start_time_not_right', 'start_time', 'end_time', 'remind_time'
-        # ,'is_repeat_time', 'repeat_freq', 'repeat_value', 'repeat_last_time'
-        ,'start_date_chinese', 'start_time_chinese', 'end_date_chinese', 'end_time_chinese', 'remind_date_chinese', 'remind_time_chinese'
-        ]
+keys = ['memory_type', 'memory_subtype', 'content', 'place', 'related_person', 'start_time', 'end_time', 'remind_time',
+        'is_repeat_time', 'repeat_freq', 'repeat_value', 'repeat_last_time'
+        , 'start_time_chinese', 'end_time_chinese', 'remind_time_chinese'
+       ]
 
 # keys = ['memory_type', 'memory_subtype', 'content', 'place', 'related_person', 'start_time_has_hour', 'start_time', 'end_time', 'remind_time']
 
 
+num_map = {'半': 0.5, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15, '十六': 16, '十七': 17, '十八': 18, '十九': 19, '二十': 20,
+           '二十一': 21, '二十二': 22, '二十三': 23, '二十四': 24, '二十五': 25, '二十六': 26, '二十七': 27, '二十八': 28, '二十九': 29, '三十': 30, '三十一': 31, '三十二': 32, '三十三': 33, '三十四': 34,'三十五': 35, '三十六': 36, '三十七': 37, '三十八': 38, '三十九': 39, '四十': 40,
+           '四十一': 41, '四十二': 42, '四十三': 43, '四十四': 44, '四十五': 45, '四十六': 46, '四十七': 47, '四十八': 48, '四十九': 49, '五十': 50, '五十一': 51, '五十二': 52, '五十三': 53, '五十四': 54, '五十五': 55, '五十六': 56, '五十七': 57, '五十八': 58, '五十九': 59, '六十': 60}
+def chinese_to_num(value):
+    return num_map.get(value) if num_map.get(value) else int(value)
 
-num_map = {'半': 0.5, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
-           '十': 10, '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15, '十六': 16, '十七': 17, '十八': 18, '十九': 19,
-           '二十': 20, '二十一': 21, '二十二': 22, '二十三': 23, '二十四': 24, '二十五': 25, '二十六': 26, '二十七': 27,
-           '二十八': 28, '二十九': 29, '三十': 30, '三十一': 31, '三十二': 32, '三十三': 33, '三十四': 34, '三十五': 35,
-           '三十六': 36, '三十七': 37, '三十八': 38, '三十九': 39, '四十': 40, '四十一': 41, '四十二': 42, '四十三': 43,
-           '四十四': 44, '四十五': 45, '四十六': 46, '四十七': 47, '四十八': 48, '四十九': 49, '五十': 50,
-           '五十一': 51, '五十二': 52, '五十三': 53, '五十四': 54, '五十五': 55, '五十六': 56, '五十七': 57, '五十八': 58, '五十九': 59, '六十': 60}
+def time_add_minute(time_str, delta):
+    if not time_str: return ''
+    dt = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+    new_dt = dt + timedelta(minutes=delta)
+    return new_dt.strftime("%Y-%m-%d %H:%M:%S")
 
 def str2json_llm_output(arg1):
     if not arg1: return {}
@@ -34,6 +37,45 @@ def str2json_llm_output(arg1):
             return arg1
     except:
         return {}
+
+def exchange_remind_time(remind_time, current_time):
+    dt1 = datetime.strptime(current_time[0:10], "%Y-%m-%d")
+    dt2 = datetime.strptime(remind_time[0:10], "%Y-%m-%d")
+    delta = (dt2-dt1).days
+
+    dt0 = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+    dt = datetime.strptime(remind_time, "%Y-%m-%d %H:%M:%S")
+    weekday0 = dt0.weekday()
+    weekday = dt.weekday()  #获取周几（0=周一，6=周日）
+    weekday_name = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][weekday]
+    month = dt.month
+    day = dt.day
+    reply_day = f"{month}月{day}号"
+    if delta < 0:
+        return [f"这{weekday_name}{remind_time[11:16]}"]
+    elif delta == 0:
+        r = [f"这{weekday_name}{remind_time[11:16]}", f"{weekday_name}{remind_time[11:16]}"]
+        if weekday_name == '周日': r.extend([f"这周天{remind_time[11:16]}", f"周天{remind_time[11:16]}"])
+    elif delta <= (7+6-weekday0):
+        if delta >= 7:
+            r = [f"下{weekday_name}{remind_time[11:16]}"]
+            if weekday_name == '周日': r.extend([f"下周天{remind_time[11:16]}"])
+        elif weekday0 > weekday:
+            r = [f"{weekday_name}{remind_time[11:16]}", f"下{weekday_name}{remind_time[11:16]}"]
+            if weekday_name == '周日': r.extend([f"周天{remind_time[11:16]}", f"下周天{remind_time[11:16]}"])
+        else:
+            r = [f"这{weekday_name}{remind_time[11:16]}", f"{weekday_name}{remind_time[11:16]}"]
+            if weekday_name == '周日': r.extend([f"这周天{remind_time[11:16]}", f"周天{remind_time[11:16]}"])
+    else:
+        r = [f"{reply_day}{remind_time[11:16]}"]
+    if delta == 0:
+        r.append(f"今天{remind_time[11:16]}")
+    elif delta == 1:
+        r.append(f"明天{remind_time[11:16]}")
+    elif delta == 2:
+        r.append(f"后天{remind_time[11:16]}")
+    return r
+
 
 def get_time_value(value):
     if not value: return ''
@@ -57,12 +99,13 @@ def get_answer_from_file_json(df):
         d = row['result']
         v = {}
         start_time_has_hour = get_start_time_has_hour(d)
-        for key in keys:
+        for key in keys+['current_time', 'query_hist']:
             if key in ('start_time', 'end_time', 'remind_time'):
-                if start_time_has_hour == '是':
-                    v[key] = get_time_value(d.get(key))
-                else:
-                    v[key] = ''
+                v[key] = get_time_value(d.get(key))
+                # if start_time_has_hour == '是':
+                #     v[key] = get_time_value(d.get(key))
+                # else:
+                #     v[key] = ''
             elif key == 'start_time_has_hour':
                 v[key] = start_time_has_hour
             else:
@@ -76,65 +119,114 @@ def get_answer_from_file(file):
     answer = []
     for i, row in df.iterrows():
         v = {}
-        for key in keys:
+        for key in keys+['current_time', 'query_hist']:
             value = str(row[key])
             value = '' if value == 'nan' else value
             if key in ('start_time', 'end_time', 'remind_time'):
-                # if row['start_time_has_hour'] == '是' and str(row['start_time_not_right']) == '0':
-                if row['start_time_has_hour'] == '是':
-                    v[key] = value if value else ''
-                else:
-                    v[key] = ''
+                v[key] = value if value else ''
+                # # if row['start_time_has_hour'] == '是' and str(row['start_time_not_right']) == '0':
+                # if row['start_time_has_hour'] == '是':
+                #     v[key] = value if value else ''
+                # else:
+                #     v[key] = ''
             else:
                 v[key] = value
         answer.append(v)
     return answer
 
 def exchange_time_match0(match):
-    hour = match.group(2)
-    hour = num_map.get(hour) if num_map.get(hour) else int(hour)
-    if match.group(1) in ('下午', '晚上', '夜里') and hour < 12: hour += 12
-    minute = match.group(3)
-    minute = num_map.get(minute) if num_map.get(minute) else int(minute)
-    return f"{(hour):02d}:{(minute):02d}"
+    m1 = match.group(1) if match.group(1) else ''
+    if m1 and m1 in ('今', '明', '后'): m1 = f"{m1}天"
+    if m1 and m1 in ('今日', '明日', '后日'): m1 = f"{m1[0]}天"
+    hour = chinese_to_num(match.group(3))
+    if match.group(2) and match.group(2) in ('下午', '晚上', '夜里', '晚') and hour < 12: hour += 12
+    if match.group(2) and match.group(2) in ('中午') and hour < 8: hour += 12
+    minute = chinese_to_num(match.group(4))
+    # print(match.groups(), f"{m1}{(hour):02d}:{(minute):02d}")
+    return f"{m1}{(hour):02d}:{(minute):02d}"
 def exchange_time_match1(match):
-    hour = match.group(2)
-    hour = num_map.get(hour) if num_map.get(hour) else int(hour)
-    if match.group(1) in ('下午', '晚上', '夜里') and hour < 12: hour += 12
-    return f"{(hour):02d}:30"
+    m1 = match.group(1) if match.group(1) else ''
+    if m1 and m1 in ('今', '明', '后'): m1 = f"{m1}天"
+    if m1 and m1 in ('今日', '明日', '后日'): m1 = f"{m1[0]}天"
+    hour = chinese_to_num(match.group(3))
+    if match.group(2) and match.group(2) in ('下午', '晚上', '夜里', '晚') and hour < 12: hour += 12
+    if match.group(2) and match.group(2) in ('中午') and hour < 8: hour += 12
+    # print(match.groups(), f"{m1}{(hour):02d}:30")
+    return f"{m1}{(hour):02d}:30"
 def exchange_time_match2(match):
-    hour = match.group(2)
-    hour = num_map.get(hour) if num_map.get(hour) else int(hour)
-    if match.group(1) in ('下午', '晚上', '夜里') and hour < 12: hour += 12
-    return f"{(hour):02d}{match.group(3)}{match.group(4)}"
+    m1 = match.group(1) if match.group(1) else ''
+    if m1 and m1 in ('今', '明', '后'): m1 = f"{m1}天"
+    if m1 and m1 in ('今日', '明日', '后日'): m1 = f"{m1[0]}天"
+    hour = chinese_to_num(match.group(3))
+    if match.group(2) and match.group(2) in ('下午', '晚上', '夜里', '晚') and hour < 12: hour += 12
+    if match.group(2) and match.group(2) in ('中午') and hour < 8: hour += 12
+    # print(match.groups(), f"{m1}{(hour):02d}{match.group(4)}{match.group(5)}")
+    if match.group(5):
+        return f"{m1}{(hour):02d}{match.group(4)}{match.group(5)}"
+    else:
+        return f"{m1}{(hour):02d}:00"
 
-def exchange_time_value(value):
-        match = re.match(r'([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})[点](\d{1,2}|[一二三四五六七八九十]{1,3})分', value)
+def exchange_time_match3(match):
+    hour = chinese_to_num(match.group(4))
+    if match.group(3) and match.group(3) in ('下午', '晚上', '夜里', '晚') and hour < 12: hour += 12
+    if match.group(3) and match.group(3) in ('中午') and hour < 8: hour += 12
+    # print(match.groups(), f"{m1}{(hour):02d}{match.group(4)}{match.group(5)}")
+    if match.group(6):
+        return f"{match.group(1)}日{match.group(2)}{(hour):02d}{match.group(5)}{match.group(6)}"
+    else:
+        return f"{match.group(1)}日{match.group(2)}{(hour):02d}:00"
+
+def exchange_time_value(value, key, data):
+        match = re.match(r'([下每]个?月)(\d{1,2}|[一两二三四五六七八九十]{1,3})[号日]([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})(点)(.{0,3})', value)
+        if match:
+            return exchange_time_match3(match)
+        match = re.match(r'([这本下]{0,2}周[一二三四五六七日天]|[今明后][天日]?)?([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})[点](\d{1,2}|[一二三四五六七八九十]{1,3})分', value)
         if match:
             return exchange_time_match0(match)
-        match = re.match(r'([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})[点](\d{1,2}|[一二三四五六七八九十]{1,3})', value)
+        match = re.match(r'([这本下]{0,2}周[一二三四五六七日天]|[今明后][天日]?)?([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})[点:](\d{1,2}|[一二三四五六七八九十]{1,3})', value)
         if match:
             return exchange_time_match0(match)
-        match = re.match(r'([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})[点]半', value)
+        match = re.match(r'([这本下]{0,2}周[一二三四五六七日天]|[今明后][天日]?)?([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})[点]半', value)
         if match:
             return exchange_time_match1(match)
-        match = re.match(r'([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})(点)(.{0,3})', value)
+        match = re.match(r'([这本下]{0,2}周[一二三四五六七日天]|[今明后][天日]?)?([凌早晨上中下午晚夜里]{0,2})(\d{1,2}|[一两二三四五六七八九十]{1,3})(点)(.{0,3})', value)
         if match:
             return exchange_time_match2(match)
+        if key == 'remind_time_chinese' and data.get(key) and data.get("start_time"):
+            current_time = data.get("current_time")[1:] if data.get("current_time")[0] == '`' else data.get("current_time")
+            new_start_time = data.get("start_time")[1:] if data.get("start_time")[0] == '`' else data.get("start_time")
+            return exchange_relative_time(data.get("remind_time_chinese"), current_time, new_start_time)
         return value
 
-def is_right(key, a0, a1, data0, data1):
+def exchange_relative_time(time_chinese, current_time, new_start_time):
+    if not new_start_time or not time_chinese: return time_chinese
+    match = re.match(r'(提前|开始前)(\d{1,2}|[一二三四五六七八九十两半]{1,3})[个]?(分|小时)钟?', time_chinese)
+    if match:
+        num = chinese_to_num(match.group(2))
+        if match.group(3) == '分':
+            remind_time = time_add_minute(new_start_time, -1*num)
+            return exchange_remind_time(remind_time, current_time)
+        elif match.group(3) == '小时':
+            remind_time = time_add_minute(new_start_time, -1*num*60)
+            return exchange_remind_time(remind_time, current_time)
+    return time_chinese
+
+def is_right(num, key, a0, a1, data0, data1):
     if a0 == a1: return True
     if key in ('start_date_chinese', 'start_time_chinese', 'end_date_chinese', 'end_time_chinese', 'remind_date_chinese', 'remind_time_chinese'):
-        v0 = exchange_time_value(a0)
-        v1 = exchange_time_value(a1)
-        if v0 == v1:
-            # print(f"输出: '✓' , 转换: {a0}={v0}, {a1}={v1}")
+        v0 = exchange_time_value(a0, key, data0)
+        v1 = exchange_time_value(a1, key, data1)
+        if isinstance(v1, list) and v0 in v1:
+            # print(f"[{num+1}] '✓' , 转换: ", v0, v1)
+            return True
+        elif v0 == v1:
+            # print(f"[{num+1}] '✓' , 转换: {a0}={v0}, {a1}={v1}")
             return True
         else:
-            print(f"输出: '✗' , 转换: {a0}={v0}, {a1}={v1}, key={key}")
+            print(f"[{num+1}] '✗' , 转换: {a0}={v0}, {a1}={v1}, key={key}")
             # print(data0)
             # print(data1)
+            pass
     elif key in ('content'):
         n = 0
         for a in a0:
@@ -155,10 +247,12 @@ def main(file0, file1, rslt):
         for key in keys:
             a0 = data0.get(key)
             a1 = data1.get(key)
-            if is_right(key, a0, a1, data0, data1):
+            if is_right(num, key, a0, a1, data0, data1):
                 r[key] = r[key]+1 if r.get(key) else 1
             else:
-                if key not in ('memory_subtype', 'place', 'related_person'):answer_is_right = False
+                if key not in ('memory_subtype', 'place', 'related_person'):
+                    answer_is_right = False
+                    # print(f"{data0['query_hist']},{data0['current_time'][1:]}")
         if answer_is_right: r['answer'] = r['answer']+1 if  r.get('answer') else 1
 
     for key in keys+['answer']:
@@ -178,13 +272,13 @@ def main(file0, file1, rslt):
 
 # filename = "集合1-随机生成-评估1000"
 # filename = "集合3-专注时间集合-评估500"
-filename = "集合4-多轮数据"
+filename = "集合4-多轮数据A"
 # filename = "集合2-重点例行case"
 online_version = ""
 # online_version = "/一期线上版本_deepseek_v3"
 # online_version = "/一期线上版本_qwen3_plus"
-file0 = f"./9_答案/{filename}.csv"
-file1 = f".{online_version}/1_生成结果/{filename}.csv"
+file0 = f"./9_答案/result_{filename}.csv"
+file1 = f".{online_version}/1_生成结果/result_{filename}.csv"
 print(file0, file1)
 rslt = {}
 rslt = main(file0, file1, rslt)
